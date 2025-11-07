@@ -127,7 +127,28 @@ class NotificationService {
       await init();
     }
     if (kIsWeb) return;
-    await _plugin.cancel(id);
+    try {
+      // Upaya normal untuk membatalkan notifikasi berdasarkan ID.
+      await _plugin.cancel(id);
+    } catch (e) {
+      // Beberapa versi plugin flutter_local_notifications pada Android
+      // dapat melempar PlatformException("Missing type parameter") saat
+      // membaca cache notifikasi lama (terbuat dari versi plugin berbeda).
+      // Agar UI tidak gagal saat centang/hapus, kita tangani secara aman.
+      try {
+        // Coba batalkan melalui implementasi spesifik Android.
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
+        await android?.cancel(id);
+      } catch (_) {
+        // Terakhir, coba cancelAll sebagai fallback.
+        // Jika tetap gagal, kita biarkan saja agar aksi UI tetap lanjut.
+        try {
+          await _plugin.cancelAll();
+        } catch (_) {}
+      }
+    }
   }
 
   String _buildBody(Reminder r) {
