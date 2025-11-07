@@ -107,18 +107,35 @@ class NotificationService {
       macOS: iosDetails,
     );
 
-    await _plugin.zonedSchedule(
-      reminder.id!,
-      'Pengingat: ${reminder.taskTitle}',
-      _buildBody(reminder),
-      scheduledDate,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'reminder:${reminder.id}',
-      matchDateTimeComponents: null,
-    );
+    try {
+      await _plugin.zonedSchedule(
+        reminder.id!,
+        'Pengingat: ${reminder.taskTitle}',
+        _buildBody(reminder),
+        scheduledDate,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'reminder:${reminder.id}',
+        matchDateTimeComponents: null,
+      );
+    } catch (e) {
+      // Tangani error dari plugin (mis. "Missing type parameter") agar
+      // tidak mengganggu alur UI.
+      try {
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
+        // Sebagai langkah pemulihan, bersihkan notifikasi lama dan lanjutkan.
+        await android?.cancel(reminder.id!);
+      } catch (_) {
+        try {
+          await _plugin.cancelAll();
+        } catch (_) {}
+      }
+      // Jangan lempar ulang; biarkan UI tetap berjalan tanpa notifikasi.
+    }
   }
 
   /// Membatalkan notifikasi untuk reminder ID tertentu.

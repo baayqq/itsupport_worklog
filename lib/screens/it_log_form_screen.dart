@@ -115,6 +115,7 @@ class _ItLogFormScreenState extends State<ItLogFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Responsif: batasi lebar konten agar nyaman di tablet/desktop
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? 'Edit Catatan' : 'Tambah Catatan'),
@@ -126,93 +127,125 @@ class _ItLogFormScreenState extends State<ItLogFormScreen> {
           )
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Judul',
-                hintText: 'Contoh: Internet kantor lambat',
-                border: OutlineInputBorder(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxContentWidth = constraints.maxWidth >= 900
+              ? 700.0
+              : constraints.maxWidth >= 600
+                  ? 560.0
+                  : constraints.maxWidth; // di ponsel, gunakan penuh
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Judul',
+                        hintText: 'Contoh: Internet kantor lambat',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Judul wajib diisi'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Kategori',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _categories
+                          .map((c) => DropdownMenuItem<String>(
+                                value: c,
+                                child: Text(c),
+                              ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _selectedCategory = val),
+                    ),
+                    const SizedBox(height: 12),
+                    // Deskripsi dibuat nyaman dibaca: tinggi menengah
+                    TextFormField(
+                      controller: _descriptionController,
+                      minLines: 4,
+                      maxLines: 8,
+                      decoration: const InputDecoration(
+                        labelText: 'Deskripsi Masalah',
+                        hintText: 'Jelaskan kendala yang terjadi...',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Langkah solusi diperbesar sesuai permintaan
+                    TextFormField(
+                      controller: _solutionController,
+                      minLines: 6,
+                      maxLines: 12,
+                      decoration: const InputDecoration(
+                        labelText: 'Langkah Solusi',
+                        hintText: 'Catat langkah-langkah yang dilakukan...',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Langkah solusi wajib diisi'
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _selectedStatus,
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _statuses
+                          .map((s) => DropdownMenuItem<String>(
+                                value: s,
+                                child: Text(s),
+                              ))
+                          .toList(),
+                      onChanged: (val) => setState(() => _selectedStatus = val),
+                    ),
+                    const SizedBox(height: 12),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Waktu',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(_formatTimestamp(_timestampMs))),
+                          TextButton.icon(
+                            onPressed: _pickDate,
+                            icon: const Icon(Icons.calendar_today),
+                            label: const Text('Pilih Tanggal'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _saving ? null : _save,
+                        icon: const Icon(Icons.save),
+                        label:
+                            Text(_isEdit ? 'Simpan Perubahan' : 'Simpan'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Judul wajib diisi' : null,
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'Kategori',
-                border: OutlineInputBorder(),
-              ),
-              items: _categories
-                  .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedCategory = val),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _descriptionController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Deskripsi Masalah',
-                hintText: 'Jelaskan kendala yang terjadi...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _solutionController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Langkah Solusi',
-                hintText: 'Catat langkah-langkah yang dilakukan...',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Langkah solusi wajib diisi' : null,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedStatus,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-              items: _statuses
-                  .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedStatus = val),
-            ),
-            const SizedBox(height: 12),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Waktu',
-                border: OutlineInputBorder(),
-              ),
-              child: Row(
-                children: [
-                  Expanded(child: Text(_formatTimestamp(_timestampMs))),
-                  TextButton.icon(
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today),
-                    label: const Text('Pilih Tanggal'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: const Icon(Icons.save),
-                label: Text(_isEdit ? 'Simpan Perubahan' : 'Simpan'),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
